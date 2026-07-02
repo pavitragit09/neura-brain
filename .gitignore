@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# Environment Variables
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Python Cache
+.pytest_cache/
+.mypy_cache/
+
+# Build
+build/
+dist/
+
+# Database
+*.db
+*.sqlite3
+
+# Node
+node_modules/
+.next/
+out/
+
+# Coverage
+.coverage
+htmlcov/
+
+# Docker
+*.pid
+# Environment examples
+!.env.example
+
+# Python virtual environment metadata
+pyvenv.cfg
+
+# macOS
+.AppleDouble
+.LSOverride
+
+# VS Code workspace
+*.code-workspace
