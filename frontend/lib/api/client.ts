@@ -1,3 +1,5 @@
+import type { DocumentItem, SOPItem } from "@/types/knowledge";
+
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export class ApiError extends Error {
@@ -34,3 +36,16 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
 
   return response.json() as Promise<T>;
 }
+
+export async function getDocuments(): Promise<DocumentItem[]> {
+  return apiFetch<DocumentItem[]>("/documents/");
+}
+
+export async function getDocumentById(id: number): Promise<DocumentItem> {
+  return apiFetch<DocumentItem>(`/documents/${id}`);
+}
+
+export async function getDocumentSOP(id: number): Promise<SOPItem> {
+  return apiFetch<SOPItem>(`/documents/${id}/sop`);
+}
+
