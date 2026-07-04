@@ -19,3 +19,18 @@ export interface SOPItem {
   review_status: ReviewStatus;
   created_at: string;
 }
+
+export type ConnectorCategory = "documents" | "collaboration" | "knowledge" | "engineering";
+export type ConnectorStatusType = "connected" | "syncing" | "needs_attention" | "coming_soon";
+
+export interface ConnectorItem {
+  id: string;
+  name: string;
+  category: ConnectorCategory;
+  status: ConnectorStatusType;
+  description: string;
+  icon: string;
+  lastSync?: string;
+  assetsCount?: number;
+  chunksCount?: number;
+}

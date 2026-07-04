@@ -27,7 +27,7 @@ export const navigationItems = [
     icon: LibraryBig,
   },
   {
-    title: "Knowledge Sources",
+    title: "Knowledge Network",
     href: "/knowledge-sources",
     icon: Waypoints,
   },
