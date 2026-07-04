@@ -8,11 +8,13 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 
 from app.repositories.sop_repository import (
-    update_review_status
+    update_review_status,
+    get_all_sops,
 )
 
 from app.security.rbac import require_roles
-
+from app.security.dependencies import get_current_user
+from app.schemas.sop import SOPResponse
 from app.models.user import UserRole, User
 
 
@@ -82,3 +84,12 @@ def reject_sop(
         "sop_id": sop.id,
         "status": sop.review_status
     }
+
+
+@router.get("/pending", response_model=list[SOPResponse])
+def get_pending_reviews(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    sops = get_all_sops(db)
+    return [s for s in sops if s.review_status in ("HUMAN_REVIEW", "PENDING")]

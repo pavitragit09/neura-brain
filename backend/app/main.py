@@ -31,6 +31,9 @@ from app.api.review import (
 from app.api.audit import (
     router as audit_router
 )
+from app.api.trust import (
+    router as trust_router
+)
 Base.metadata.create_all(
     bind=engine
 )
@@ -79,4 +82,7 @@ app.include_router(
 )
 app.include_router(
     audit_router
+)
+app.include_router(
+    trust_router
 )
