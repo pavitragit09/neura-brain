@@ -7,6 +7,8 @@ import type { DocumentItem, SOPItem } from "@/types/knowledge";
 import { FileText, FileDown, ShieldCheck, ScrollText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+import { formatDateTime } from "@/lib/date";
+
 type KnowledgeDetailSheetProps = {
   document: DocumentItem | null;
   sop: SOPItem | null;
@@ -25,11 +27,7 @@ export function KnowledgeDetailSheet({
   }
 
   // Format date
-  const uploadDate = new Date(document.created_at).toLocaleDateString(undefined, {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+  const uploadDate = formatDateTime(document.created_at);
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -120,7 +118,7 @@ export function KnowledgeDetailSheet({
                 type="button"
                 variant="outline"
                 className="h-9 text-xs gap-1.5 px-4 rounded-lg bg-background hover:bg-secondary cursor-pointer select-none"
-                onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/upload/`, "_blank")}
+                onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/uploads/${encodeURIComponent(document.filename)}`, "_blank")}
               >
                 <FileDown className="size-4" />
                 Open Original Document

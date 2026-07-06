@@ -2,6 +2,7 @@
 
 import type { DocumentItem, SOPItem } from "@/types/knowledge";
 import { CheckCircle2, FileUp, Sparkles, UserCheck } from "lucide-react";
+import { formatDateTime } from "@/lib/date";
 
 type KnowledgeVersionHistoryProps = {
   document: DocumentItem;
@@ -20,24 +21,14 @@ export function KnowledgeVersionHistory({ document, sop }: KnowledgeVersionHisto
     {
       title: "Document Ingested",
       description: `Uploaded from secure ${document.source_type.toUpperCase()} file.`,
-      date: uploadDate.toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+      date: formatDateTime(uploadDate),
       icon: FileUp,
       status: "complete",
     },
     {
       title: "SOP Extracted & Structured",
       description: `AI Ingestion pipeline chunked text and generated draft SOP with ${sop?.confidence_score ?? 94}% confidence.`,
-      date: sopDate.toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+      date: formatDateTime(sopDate),
       icon: Sparkles,
       status: "complete",
     },
@@ -47,12 +38,7 @@ export function KnowledgeVersionHistory({ document, sop }: KnowledgeVersionHisto
         ? `Approved and published to the secure organizational context.`
         : "Awaiting human review in the governance trust engine queue.",
       date: isApproved
-        ? reviewDate.toLocaleDateString(undefined, {
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          })
+        ? formatDateTime(reviewDate)
         : "Pending",
       icon: isApproved ? UserCheck : CheckCircle2,
       status: isApproved ? "complete" : "pending",

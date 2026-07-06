@@ -9,12 +9,24 @@ import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/auth-store";
 import { useSidebarStore } from "@/store/sidebar-store";
 
+import { useQuery } from "@tanstack/react-query";
+import { getTrustSummary } from "@/lib/api/client";
+
 export function Sidebar() {
   const router = useRouter();
   const collapsed = useSidebarStore((state) => state.collapsed);
   const toggleCollapsed = useSidebarStore((state) => state.toggleCollapsed);
   const signOut = useAuthStore((state) => state.signOut);
   const user = useAuthStore((state) => state.user);
+
+  const { data: summary } = useQuery({
+    queryKey: ["trust-summary"],
+    queryFn: getTrustSummary,
+    staleTime: 30000, // 30s cache freshness
+  });
+
+  const activeSources = summary?.knowledge_assets !== undefined ? (summary.knowledge_assets > 0 ? "1 Active" : "0 Active") : "1 Active";
+  const healthPercent = summary?.average_confidence !== undefined ? `${summary.average_confidence}%` : "94%";
 
   function handleSignOut() {
     signOut();
@@ -60,11 +72,11 @@ export function Sidebar() {
               </div>
               <div className="mt-2.5 flex items-center justify-between text-[11px] text-foreground/80">
                 <span>Connected Sources</span>
-                <span className="font-mono font-medium">4 Active</span>
+                <span className="font-mono font-medium">{activeSources}</span>
               </div>
               <div className="mt-1.5 flex items-center justify-between text-[11px] text-foreground/80">
                 <span>Context Health</span>
-                <span className="font-mono font-medium text-emerald-600 dark:text-emerald-400">94% verified</span>
+                <span className="font-mono font-medium text-emerald-600 dark:text-emerald-400">{healthPercent} verified</span>
               </div>
             </div>
           )}
@@ -85,10 +97,12 @@ export function Sidebar() {
                 <ChevronLeft className="size-4 rotate-180" aria-hidden="true" />
               </Button>
               <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-xs font-semibold border border-border/20 text-foreground select-none">
-                {user?.name
-                  .split(" ")
-                  .map((part) => part[0])
-                  .join("") ?? "N"}
+                {user?.initials ?? (user?.name
+                  ? user.name
+                      .split(" ")
+                      .map((part) => part[0])
+                      .join("")
+                  : "N")}
               </div>
               <Button
                 type="button"
@@ -104,10 +118,12 @@ export function Sidebar() {
           ) : (
             <div className="flex items-center gap-2.5 rounded-lg border border-border/10 bg-secondary/35 p-2 shadow-sm/5">
               <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-xs font-semibold border border-border/30 text-foreground select-none">
-                {user?.name
-                  .split(" ")
-                  .map((part) => part[0])
-                  .join("") ?? "N"}
+                {user?.initials ?? (user?.name
+                  ? user.name
+                      .split(" ")
+                      .map((part) => part[0])
+                      .join("")
+                  : "N")}
               </div>
               <div className="min-w-0 flex-1 leading-tight">
                 <div className="truncate text-xs font-medium text-foreground">{user?.name ?? "Workspace User"}</div>

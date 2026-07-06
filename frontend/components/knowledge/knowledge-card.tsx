@@ -2,6 +2,7 @@
 
 import { FileText, Waypoints, HelpCircle } from "lucide-react";
 import type { DocumentItem, SOPItem } from "@/types/knowledge";
+import { formatDateTime } from "@/lib/date";
 import { cn } from "@/lib/utils";
 
 type KnowledgeCardProps = {
@@ -17,11 +18,7 @@ export function KnowledgeCard({ document, sop, viewMode = "grid", onClick }: Kno
   const confidence = sop?.confidence_score ?? 0;
   
   // Format last updated
-  const formattedDate = new Date(document.created_at).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  const formattedDate = formatDateTime(document.created_at);
 
   const isList = viewMode === "list";
 

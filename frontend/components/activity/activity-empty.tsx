@@ -1,0 +1,17 @@
+"use client";
+
+import { CalendarDays } from "lucide-react";
+
+export function ActivityEmpty() {
+  return (
+    <div className="flex flex-col items-center justify-center text-center p-12 border border-dashed border-border/40 rounded-xl bg-card/45 select-none">
+      <div className="flex size-10 items-center justify-center rounded-lg bg-secondary/80 border border-border/20 text-muted-foreground/80 mb-4">
+        <CalendarDays className="size-5" aria-hidden="true" />
+      </div>
+      <h3 className="text-sm font-medium text-foreground/90 tracking-tight">No Events Found</h3>
+      <p className="text-xs text-muted-foreground/75 mt-1 max-w-[280px] leading-relaxed">
+        No activity logs match your selected filter criteria. Try adjusting your search query or categories.
+      </p>
+    </div>
+  );
+}

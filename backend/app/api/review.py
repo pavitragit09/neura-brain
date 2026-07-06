@@ -18,6 +18,8 @@ from app.schemas.sop import SOPResponse
 from app.models.user import UserRole, User
 
 
+from app.services.audit_service import log_action
+
 router = APIRouter(
     prefix="/review",
     tags=["Review Workflow"]
@@ -47,6 +49,15 @@ def approve_sop(
         return {
             "error": "SOP not found"
         }
+
+    log_action(
+        db=db,
+        action="APPROVE_SOP",
+        entity_type="SOP",
+        entity_id=sop_id,
+        performed_by=current_user.username,
+        details=f"Approved SOP for {sop.document_name}"
+    )
 
     return {
         "message": "SOP approved",
@@ -78,6 +89,15 @@ def reject_sop(
         return {
             "error": "SOP not found"
         }
+
+    log_action(
+        db=db,
+        action="REJECT_SOP",
+        entity_type="SOP",
+        entity_id=sop_id,
+        performed_by=current_user.username,
+        details=f"Rejected SOP for {sop.document_name}"
+    )
 
     return {
         "message": "SOP rejected",

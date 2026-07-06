@@ -204,16 +204,7 @@ export function NetworkWorkspace() {
   // Query documents count from backend
   const { data: documents = [] } = useQuery<DocumentItem[]>({
     queryKey: ["documents"],
-    queryFn: async () => {
-      try {
-        return await getDocuments();
-      } catch (err) {
-        if (process.env.NODE_ENV === "development") {
-          return [];
-        }
-        throw err;
-      }
-    },
+    queryFn: getDocuments,
   });
 
   // Hydrate baseConnectors with dynamic values

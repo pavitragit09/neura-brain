@@ -34,11 +34,22 @@ from app.api.audit import (
 from app.api.trust import (
     router as trust_router
 )
+from fastapi.staticfiles import StaticFiles
+from app.core.config import settings
+
 Base.metadata.create_all(
     bind=engine
 )
 app = FastAPI(
     title="Company Brain MVP"
+)
+
+# Ensure upload directory exists and mount static path
+settings.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+app.mount(
+    "/uploads",
+    StaticFiles(directory=str(settings.UPLOAD_DIR)),
+    name="uploads"
 )
 
 app.add_middleware(
@@ -47,6 +58,7 @@ app.add_middleware(
         "http://localhost:3000",
         "http://127.0.0.1:3000",
     ],
+    allow_origin_regex="https?://(localhost|127\\.0\\.0\\.1|192\\.168\\.\\d+\\.\\d+|10\\.\\d+\\.\\d+\\.\\d+|172\\.(1[6-9]|2\\d|3[0-1])\\.\\d+\\.\\d+)(:\\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -2,6 +2,8 @@
 
 import type { DocumentItem, SOPItem } from "@/types/knowledge";
 
+import { formatDateTime } from "@/lib/date";
+
 type KnowledgeMetadataProps = {
   document: DocumentItem;
   sop?: SOPItem;
@@ -11,13 +13,7 @@ export function KnowledgeMetadata({ document, sop }: KnowledgeMetadataProps) {
   const status = sop?.review_status ?? "PENDING";
   const confidence = sop?.confidence_score ?? 0;
   
-  const formattedDate = new Date(document.created_at).toLocaleDateString(undefined, {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const formattedDate = formatDateTime(document.created_at);
 
   const getStatusLabel = (statusStr: string) => {
     switch (statusStr) {

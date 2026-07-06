@@ -62,6 +62,7 @@ export function ReviewDetailSheet({
       queryClient.invalidateQueries({ queryKey: ["sops"] });
       queryClient.invalidateQueries({ queryKey: ["trust-summary"] });
       queryClient.invalidateQueries({ queryKey: ["pending-reviews"] });
+      queryClient.invalidateQueries({ queryKey: ["audit-logs"] });
       onSuccess();
       onClose();
     },
@@ -78,6 +79,7 @@ export function ReviewDetailSheet({
       queryClient.invalidateQueries({ queryKey: ["sops"] });
       queryClient.invalidateQueries({ queryKey: ["trust-summary"] });
       queryClient.invalidateQueries({ queryKey: ["pending-reviews"] });
+      queryClient.invalidateQueries({ queryKey: ["audit-logs"] });
       onSuccess();
       onClose();
     },

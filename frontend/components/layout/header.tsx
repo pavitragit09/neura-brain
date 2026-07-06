@@ -46,10 +46,12 @@ export function Header({ mobileSidebar }: HeaderProps) {
         </Button>
         
         <div className="flex size-7 select-none items-center justify-center rounded-lg bg-secondary text-[11px] font-semibold border border-border/25 text-foreground">
-          {user?.name
-            .split(" ")
-            .map((part) => part[0])
-            .join("") ?? "N"}
+          {user?.initials ?? (user?.name
+            ? user.name
+                .split(" ")
+                .map((part) => part[0])
+                .join("")
+            : "N")}
         </div>
       </div>
     </header>

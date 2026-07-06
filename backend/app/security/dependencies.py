@@ -43,6 +43,8 @@ def get_current_user(
                 username="admin",
                 role=UserRole.ADMIN
             )
+        else:
+            user.role = UserRole.ADMIN
         return user
 
     if token is None:

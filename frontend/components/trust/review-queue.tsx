@@ -4,6 +4,8 @@ import type { SOPItem } from "@/types/knowledge";
 import { FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+import { formatDateTime } from "@/lib/date";
+
 type ReviewQueueProps = {
   sops: SOPItem[];
   onInspect: (sop: SOPItem) => void;
@@ -27,11 +29,7 @@ export function ReviewQueue({ sops, onInspect }: ReviewQueueProps) {
 
       <div className="flex flex-col gap-3">
         {sops.map((sop) => {
-          const formattedDate = new Date(sop.created_at).toLocaleDateString(undefined, {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          });
+          const formattedDate = formatDateTime(sop.created_at);
 
           return (
             <div

@@ -4,13 +4,10 @@ import { useState, useTransition, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getDocuments, apiFetch } from "@/lib/api/client";
 import type { DocumentItem, SOPItem } from "@/types/knowledge";
-import { mockDocuments, mockSOPs } from "@/lib/mock/knowledge-data";
 import { KnowledgeToolbar } from "./knowledge-toolbar";
 import { KnowledgeFilterBar, FilterValue } from "./knowledge-filter-bar";
 import { KnowledgeGrid } from "./knowledge-grid";
 import { KnowledgeDetailSheet } from "./knowledge-detail-sheet";
-
-const isDev = process.env.NODE_ENV === "development";
 
 export function KnowledgeWorkspace() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -35,17 +32,7 @@ export function KnowledgeWorkspace() {
     refetch: refetchDocs,
   } = useQuery<DocumentItem[]>({
     queryKey: ["documents"],
-    queryFn: async () => {
-      try {
-        return await getDocuments();
-      } catch (err) {
-        if (isDev) {
-          console.warn("Backend /documents API failed in dev. Loading mock documents.", err);
-          return mockDocuments;
-        }
-        throw err;
-      }
-    },
+    queryFn: getDocuments,
   });
 
   const {
@@ -56,17 +43,7 @@ export function KnowledgeWorkspace() {
     refetch: refetchSops,
   } = useQuery<SOPItem[]>({
     queryKey: ["sops"],
-    queryFn: async () => {
-      try {
-        return await apiFetch<SOPItem[]>("/sops/");
-      } catch (err) {
-        if (isDev) {
-          console.warn("Backend /sops API failed in dev. Loading mock SOPs.", err);
-          return Object.values(mockSOPs);
-        }
-        throw err;
-      }
-    },
+    queryFn: () => apiFetch<SOPItem[]>("/sops/"),
   });
 
   const isLoading = isDocLoading || isSopsLoading;

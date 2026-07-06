@@ -3,6 +3,8 @@
 import type { AuditLogItem } from "@/types/knowledge";
 import { ShieldCheck, ShieldAlert, Database } from "lucide-react";
 
+import { formatDateTime } from "@/lib/date";
+
 type AuditActivityProps = {
   logs: AuditLogItem[];
   isValid: boolean;
@@ -12,12 +14,7 @@ export function AuditActivity({ logs, isValid }: AuditActivityProps) {
   const displayLogs = [...logs].reverse().slice(0, 10); // Show latest 10 logs
 
   const formatLogDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return formatDateTime(dateStr);
   };
 
   return (
