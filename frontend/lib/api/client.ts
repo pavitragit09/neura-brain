@@ -20,12 +20,14 @@ export class ApiError extends Error {
 }
 
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const headers = new Headers(options.headers);
+  if (!(options.body instanceof FormData)) {
+    headers.set("Content-Type", "application/json");
+  }
+
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
+    headers,
   });
 
   if (!response.ok) {
@@ -85,6 +87,57 @@ export async function approveSop(id: number): Promise<{ message: string; sop_id:
 export async function rejectSop(id: number): Promise<{ message: string; sop_id: number; status: string }> {
   return apiFetch<{ message: string; sop_id: number; status: string }>(`/review/${id}/reject`, {
     method: "PATCH",
+  });
+}
+
+export function uploadDocument(
+  file: File,
+  onProgress: (progress: number) => void,
+  signal?: AbortSignal
+): Promise<{ message: string; result: Record<string, unknown> }> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${API_BASE_URL}/upload/`);
+
+    if (signal) {
+      signal.addEventListener("abort", () => {
+        xhr.abort();
+        reject(new DOMException("Aborted", "AbortError"));
+      });
+    }
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percentage = Math.round((event.loaded / event.total) * 100);
+        onProgress(percentage);
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const res = JSON.parse(xhr.responseText) as { message: string; result: Record<string, unknown> };
+          resolve(res);
+        } catch {
+          reject(new Error("Invalid response format"));
+        }
+      } else {
+        let errorMsg = "Upload failed";
+        try {
+          const res = JSON.parse(xhr.responseText);
+          errorMsg = res.detail ?? errorMsg;
+        } catch {}
+        reject(new ApiError(errorMsg, xhr.status));
+      }
+    };
+
+    xhr.onerror = () => {
+      reject(new Error("Network connection error"));
+    };
+
+    const formData = new FormData();
+    formData.append("file", file);
+    xhr.send(formData);
   });
 }
 

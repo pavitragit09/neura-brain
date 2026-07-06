@@ -35,6 +35,7 @@ dist/
 # Database
 *.db
 *.sqlite3
+backend/uploads/
 
 # Node
 node_modules/
