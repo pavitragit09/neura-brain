@@ -9,7 +9,7 @@ import {
   completePipeline,
   createInitialPipeline,
 } from "@/lib/search/pipeline";
-import { submitSearchQuery } from "@/services/search";
+import { submitSearchQuery } from "@/lib/api/client";
 import type { PipelineStage, SearchQueryResponse } from "@/types/search";
 
 type UseSearchOptions = {

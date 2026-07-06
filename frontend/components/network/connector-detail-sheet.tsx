@@ -27,6 +27,7 @@ export type UploadingFile = {
   size: number;
   progress: number;
   status: "idle" | "uploading" | "processing" | "completed" | "failed";
+  stageIndex?: number;
   error?: string;
   abortController?: AbortController;
   file: File;
@@ -79,26 +80,48 @@ export function ConnectorDetailSheet({
   };
 
   const triggerUpload = (file: File, fileId: string, abortController: AbortController) => {
+    let timer: ReturnType<typeof setInterval> | null = null;
+
     uploadDocument(
       file,
       (progress) => {
         setUploadingFiles((prev) =>
-          prev.map((f) =>
-            f.id === fileId
-              ? {
-                  ...f,
-                  progress,
-                  status: progress === 100 ? "processing" : "uploading",
-                }
-              : f
-          )
+          prev.map((f) => {
+            if (f.id === fileId) {
+              const status = progress === 100 ? "processing" : "uploading";
+              return {
+                ...f,
+                progress,
+                status,
+                stageIndex: status === "processing" ? (f.stageIndex ?? 1) : undefined,
+              };
+            }
+            return f;
+          })
         );
+
+        if (progress === 100 && !timer) {
+          timer = setInterval(() => {
+            setUploadingFiles((prev) =>
+              prev.map((f) => {
+                if (f.id === fileId && f.status === "processing") {
+                  const nextStage = (f.stageIndex ?? 1) + 1;
+                  if (nextStage <= 3) {
+                    return { ...f, stageIndex: nextStage };
+                  }
+                }
+                return f;
+              })
+            );
+          }, 800);
+        }
       },
       abortController.signal
     )
       .then(() => {
+        if (timer) clearInterval(timer);
         setUploadingFiles((prev) =>
-          prev.map((f) => (f.id === fileId ? { ...f, status: "completed", progress: 100 } : f))
+          prev.map((f) => (f.id === fileId ? { ...f, status: "completed", progress: 100, stageIndex: 4 } : f))
         );
         setRecentUploads((prev) => [
           { name: file.name, size: file.size, date: new Date().toISOString() },
@@ -112,14 +135,23 @@ export function ConnectorDetailSheet({
         queryClient.invalidateQueries({ queryKey: ["pending-reviews"] });
         queryClient.invalidateQueries({ queryKey: ["audit-logs"] });
       })
-      .catch((err) => {
+      .catch((err: Error) => {
+        if (timer) clearInterval(timer);
         if (err.name === "AbortError") {
           setUploadingFiles((prev) =>
             prev.map((f) => (f.id === fileId ? { ...f, status: "failed", error: "Upload cancelled" } : f))
           );
         } else {
+          let friendlyError = err.message || "Upload failed";
+          if (friendlyError.includes("413")) {
+            friendlyError = "File size exceeds 10MB limit";
+          } else if (friendlyError.includes("409")) {
+            friendlyError = "Duplicate upload: document already exists in graph";
+          } else if (friendlyError.includes("401") || friendlyError.includes("403")) {
+            friendlyError = "Authorization failed: admin privileges required";
+          }
           setUploadingFiles((prev) =>
-            prev.map((f) => (f.id === fileId ? { ...f, status: "failed", error: err.message || "Upload failed" } : f))
+            prev.map((f) => (f.id === fileId ? { ...f, status: "failed", error: friendlyError } : f))
           );
         }
       });
@@ -497,9 +529,49 @@ export function ConnectorDetailSheet({
 
                                 {/* Processing message */}
                                 {isProcessing && (
-                                  <div className="flex items-center gap-1.5 text-[10px] text-primary/90 leading-none">
-                                    <Loader2 className="size-3.5 animate-spin" />
-                                    <span>Compiling into NEURA knowledge graph...</span>
+                                  <div className="flex flex-col gap-2 mt-1 pl-3.5 border-l border-primary/20 text-[10.5px] text-muted-foreground/80 font-mono select-none">
+                                    <div className="flex items-center gap-2">
+                                      {f.stageIndex && f.stageIndex >= 1 ? (
+                                        f.stageIndex === 1 ? (
+                                          <Loader2 className="size-3.5 text-primary animate-spin" />
+                                        ) : (
+                                          <CheckCircle className="size-3.5 text-emerald-500" />
+                                        )
+                                      ) : (
+                                        <div className="size-3.5 rounded-full border border-muted-foreground/30" />
+                                      )}
+                                      <span className={f.stageIndex === 1 ? "text-primary font-semibold animate-pulse" : ""}>
+                                        Processing Document...
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {f.stageIndex && f.stageIndex >= 2 ? (
+                                        f.stageIndex === 2 ? (
+                                          <Loader2 className="size-3.5 text-primary animate-spin" />
+                                        ) : (
+                                          <CheckCircle className="size-3.5 text-emerald-500" />
+                                        )
+                                      ) : (
+                                        <div className="size-3.5 rounded-full border border-muted-foreground/30" />
+                                      )}
+                                      <span className={f.stageIndex === 2 ? "text-primary font-semibold animate-pulse" : ""}>
+                                        Generating Embeddings...
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {f.stageIndex && f.stageIndex >= 3 ? (
+                                        f.stageIndex === 3 ? (
+                                          <Loader2 className="size-3.5 text-primary animate-spin" />
+                                        ) : (
+                                          <CheckCircle className="size-3.5 text-emerald-500" />
+                                        )
+                                      ) : (
+                                        <div className="size-3.5 rounded-full border border-muted-foreground/30" />
+                                      )}
+                                      <span className={f.stageIndex === 3 ? "text-primary font-semibold animate-pulse" : ""}>
+                                        Generating SOP...
+                                      </span>
+                                    </div>
                                   </div>
                                 )}
 

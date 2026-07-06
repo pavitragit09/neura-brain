@@ -15,13 +15,14 @@ import {
 import type { ConnectorItem } from "@/types/knowledge";
 import { ConnectorStatus } from "./connector-status";
 import { Button } from "@/components/ui/button";
+import { memo } from "react";
 
 type ConnectorCardProps = {
   connector: ConnectorItem;
   onClick: () => void;
 };
 
-export function ConnectorCard({ connector, onClick }: ConnectorCardProps) {
+export const ConnectorCard = memo(function ConnectorCard({ connector, onClick }: ConnectorCardProps) {
   const getIcon = (iconName: string) => {
     switch (iconName) {
       case "pdf":
@@ -116,4 +117,4 @@ export function ConnectorCard({ connector, onClick }: ConnectorCardProps) {
       </div>
     </div>
   );
-}
+});

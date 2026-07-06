@@ -3,7 +3,8 @@
 import { FileText, Waypoints, HelpCircle } from "lucide-react";
 import type { DocumentItem, SOPItem } from "@/types/knowledge";
 import { formatDateTime } from "@/lib/date";
-import { cn } from "@/lib/utils";
+import { memo } from "react";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 type KnowledgeCardProps = {
   document: DocumentItem;
@@ -12,7 +13,12 @@ type KnowledgeCardProps = {
   onClick?: () => void;
 };
 
-export function KnowledgeCard({ document, sop, viewMode = "grid", onClick }: KnowledgeCardProps) {
+export const KnowledgeCard = memo(function KnowledgeCard({
+  document,
+  sop,
+  viewMode = "grid",
+  onClick,
+}: KnowledgeCardProps) {
   // Determine verification state
   const status = sop?.review_status ?? "PENDING";
   const confidence = sop?.confidence_score ?? 0;
@@ -22,30 +28,20 @@ export function KnowledgeCard({ document, sop, viewMode = "grid", onClick }: Kno
 
   const isList = viewMode === "list";
 
-  // Visual status configurations
-  const getStatusConfig = (statusStr: string) => {
-    switch (statusStr) {
+  const getBadgeStatus = (statusStr: string) => {
+    switch (statusStr.toUpperCase()) {
       case "APPROVED":
       case "AUTO_PUBLISH":
-        return {
-          label: "Verified",
-          classes: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/10",
-        };
+        return "verified";
       case "HUMAN_REVIEW":
       case "PENDING":
-        return {
-          label: "In Review",
-          classes: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/10",
-        };
+        return "pending_review";
       default:
-        return {
-          label: "Review Required",
-          classes: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/10",
-        };
+        return "contradiction";
     }
   };
 
-  const statusConfig = getStatusConfig(status);
+  const badgeStatus = getBadgeStatus(status);
 
   if (isList) {
     return (
@@ -59,7 +55,7 @@ export function KnowledgeCard({ document, sop, viewMode = "grid", onClick }: Kno
             onClick?.();
           }
         }}
-        aria-label={`Inspect document ${document.filename}. Status: ${statusConfig.label}. Source type: ${document.source_type}`}
+        aria-label={`Inspect document ${document.filename}. Status: ${badgeStatus}. Source type: ${document.source_type}`}
         className="group flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-border/30 bg-card p-4 shadow-sm/5 hover:-translate-y-0.5 hover:shadow-md/5 transition-all duration-150 ease-out cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
       >
         <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -86,9 +82,7 @@ export function KnowledgeCard({ document, sop, viewMode = "grid", onClick }: Kno
               {confidence}% trust
             </span>
           )}
-          <span className={cn("text-[9px] font-medium tracking-wide uppercase px-2 py-0.5 rounded-full border select-none", statusConfig.classes)}>
-            {statusConfig.label}
-          </span>
+          <StatusBadge status={badgeStatus} />
         </div>
       </div>
     );
@@ -105,7 +99,7 @@ export function KnowledgeCard({ document, sop, viewMode = "grid", onClick }: Kno
           onClick?.();
         }
       }}
-      aria-label={`Inspect document ${document.filename}. Status: ${statusConfig.label}. Confidence: ${confidence} percent`}
+      aria-label={`Inspect document ${document.filename}. Status: ${badgeStatus}. Confidence: ${confidence} percent`}
       className="group flex flex-col gap-4 rounded-xl border border-border/30 bg-card p-5 shadow-sm/5 hover:-translate-y-0.5 hover:shadow-md/5 transition-all duration-150 ease-out cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
     >
       {/* Top row */}
@@ -117,9 +111,7 @@ export function KnowledgeCard({ document, sop, viewMode = "grid", onClick }: Kno
             <Waypoints className="size-4" />
           )}
         </div>
-        <span className={cn("text-[9px] font-medium tracking-wide uppercase px-2 py-0.5 rounded-full border select-none", statusConfig.classes)}>
-          {statusConfig.label}
-        </span>
+        <StatusBadge status={badgeStatus} />
       </div>
 
       {/* Info block */}
@@ -148,4 +140,4 @@ export function KnowledgeCard({ document, sop, viewMode = "grid", onClick }: Kno
       </div>
     </div>
   );
-}
+});

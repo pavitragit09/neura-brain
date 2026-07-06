@@ -6,6 +6,7 @@ import type {
   ContradictionsResponse,
   VerificationResponse,
 } from "@/types/knowledge";
+import type { SearchQueryRequest, SearchQueryResponse } from "@/types/search";
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -138,6 +139,13 @@ export function uploadDocument(
     const formData = new FormData();
     formData.append("file", file);
     xhr.send(formData);
+  });
+}
+
+export async function submitSearchQuery(payload: SearchQueryRequest): Promise<SearchQueryResponse> {
+  return apiFetch<SearchQueryResponse>("/query/", {
+    method: "POST",
+    body: JSON.stringify(payload),
   });
 }
 
