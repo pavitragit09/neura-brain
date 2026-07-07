@@ -38,6 +38,8 @@ def get_connector_status(db: Session, connector_type: str):
 
 def generate_google_auth_url(state: str) -> str:
     scopes = [
+        "openid",
+        "https://www.googleapis.com/auth/userinfo.email",
         "https://www.googleapis.com/auth/drive.readonly",
         "https://www.googleapis.com/auth/drive.metadata.readonly"
     ]
