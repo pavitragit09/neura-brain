@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
+import { useState, useTransition, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getDocuments } from "@/lib/api/client";
+import { useSearchParams } from "next/navigation";
+import { toast } from "sonner";
+import { getDocuments, getGoogleStatus } from "@/lib/api/client";
 import type { DocumentItem, ConnectorItem } from "@/types/knowledge";
 import { NetworkHealth } from "./network-health";
 import { ConnectorSearch } from "./connector-search";
@@ -24,7 +26,7 @@ const baseConnectors: Omit<ConnectorItem, "assetsCount">[] = [
     id: "gdrive",
     name: "Google Drive",
     category: "documents",
-    status: "coming_soon",
+    status: "disconnected",
     description: "Index files, spreadsheets, and slides across team folders.",
     icon: "gdrive",
   },
@@ -201,10 +203,33 @@ export function NetworkWorkspace() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [, startTransition] = useTransition();
 
+  const searchParams = useSearchParams();
+
+  // Toast callback parameter updates
+  useEffect(() => {
+    const success = searchParams.get("success");
+    const error = searchParams.get("error");
+
+    if (success) {
+      toast.success("Google Drive connected successfully!");
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (error) {
+      toast.error(decodeURIComponent(error));
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [searchParams]);
+
   // Query documents count from backend
   const { data: documents = [] } = useQuery<DocumentItem[]>({
     queryKey: ["documents"],
     queryFn: getDocuments,
+  });
+
+  // Query Google status
+  const { data: googleStatus } = useQuery({
+    queryKey: ["connector-status", "google"],
+    queryFn: getGoogleStatus,
+    staleTime: 5000,
   });
 
   // Hydrate baseConnectors with dynamic values
@@ -217,9 +242,22 @@ export function NetworkWorkspace() {
           chunksCount: documents.length * 12, // mock chunks indicator
         } as ConnectorItem;
       }
+      if (conn.id === "gdrive") {
+        const isConnected = googleStatus?.status === "connected";
+        return {
+          ...conn,
+          status: isConnected ? "connected" : "disconnected",
+          lastSync: isConnected && googleStatus.last_connected
+            ? new Date(googleStatus.last_connected).toLocaleString()
+            : undefined,
+          providerEmail: isConnected ? googleStatus.email : undefined,
+          assetsCount: isConnected ? 0 : undefined,
+          chunksCount: isConnected ? 0 : undefined,
+        } as ConnectorItem;
+      }
       return conn as ConnectorItem;
     });
-  }, [documents]);
+  }, [documents, googleStatus]);
 
   const handleSearchChange = (val: string) => {
     startTransition(() => {

@@ -55,6 +55,7 @@ export const ConnectorCard = memo(function ConnectorCard({ connector, onClick }:
 
   const IconComponent = getIcon(connector.icon);
   const isComingSoon = connector.status === "coming_soon";
+  const isDisconnected = connector.status === "disconnected";
 
   return (
     <div
@@ -112,7 +113,7 @@ export const ConnectorCard = memo(function ConnectorCard({ connector, onClick }:
             onClick();
           }}
         >
-          {isComingSoon ? "Explore" : "Manage"}
+          {isComingSoon ? "Explore" : isDisconnected ? "Connect" : "Manage"}
         </Button>
       </div>
     </div>

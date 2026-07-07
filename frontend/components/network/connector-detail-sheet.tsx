@@ -5,8 +5,9 @@ import type { ConnectorItem } from "@/types/knowledge";
 import { ConnectorStatus } from "./connector-status";
 import { Button } from "@/components/ui/button";
 import { useState, useRef } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { uploadDocument } from "@/lib/api/client";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { uploadDocument, connectGoogle, disconnectGoogle } from "@/lib/api/client";
+import { toast } from "sonner";
 import {
   FileText,
   RefreshCw,
@@ -46,6 +47,37 @@ export function ConnectorDetailSheet({
 }: ConnectorDetailSheetProps) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [isConnecting, setIsConnecting] = useState(false);
+
+  const disconnectMutation = useMutation({
+    mutationFn: disconnectGoogle,
+    onSuccess: () => {
+      toast.success("Google Drive disconnected successfully.");
+      queryClient.invalidateQueries({ queryKey: ["connector-status", "google"] });
+      onClose();
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Failed to disconnect Google Drive.");
+    }
+  });
+
+  const handleConnect = async () => {
+    setIsConnecting(true);
+    try {
+      const res = await connectGoogle();
+      if (res.url) {
+        window.location.href = res.url;
+      } else {
+        toast.error("Failed to generate Google connection URL.");
+      }
+    } catch (err) {
+      const error = err as Error;
+      toast.error(error.message || "An error occurred initiating connection.");
+    } finally {
+      setIsConnecting(false);
+    }
+  };
 
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const [recentUploads, setRecentUploads] = useState<{ name: string; size: number; date: string }[]>([]);
@@ -254,7 +286,8 @@ export function ConnectorDetailSheet({
     return null;
   }
 
-  const isComingSoon = connector.status === "coming_soon";
+  const isConnected = connector.status === "connected";
+  const isDisconnected = connector.status === "disconnected";
 
   // Value descriptions for Coming Soon connectors
   const getRoadmapDetails = (id: string) => {
@@ -330,79 +363,79 @@ export function ConnectorDetailSheet({
               </SheetDescription>
             </div>
 
-            {/* Active Connected state */}
-            {!isComingSoon ? (
-              <>
-                {/* Metadata list */}
-                <div className="grid gap-4 grid-cols-2 rounded-xl border border-border/25 bg-secondary/15 p-4 select-none">
-                  <div className="space-y-1">
-                    <span className="block text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80">
-                      Sync Status
-                    </span>
-                    <span className="block text-xs font-medium text-emerald-600 dark:text-emerald-400 font-mono">
-                      ACTIVE & SYNCED
-                    </span>
+            {/* Connected, Disconnected, or Coming Soon Switch */}
+            {isConnected ? (
+              connector.id === "pdf" ? (
+                <>
+                  {/* Metadata list */}
+                  <div className="grid gap-4 grid-cols-2 rounded-xl border border-border/25 bg-secondary/15 p-4 select-none">
+                    <div className="space-y-1">
+                      <span className="block text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80">
+                        Sync Status
+                      </span>
+                      <span className="block text-xs font-medium text-emerald-600 dark:text-emerald-400 font-mono">
+                        ACTIVE & SYNCED
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="block text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80">
+                        Workspace Domain
+                      </span>
+                      <span className="block text-xs font-medium text-foreground/90">
+                        neura.local
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="block text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80">
+                        System Account
+                      </span>
+                      <span className="block text-xs font-medium text-foreground/90">
+                        admin@neura.local
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="block text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80">
+                        Last Synchronized
+                      </span>
+                      <span className="block text-xs font-medium text-foreground/90">
+                        {connector.lastSync || "Just now"}
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="block text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80">
+                        Knowledge Assets
+                      </span>
+                      <span className="block text-xs font-medium text-foreground/90 font-mono">
+                        {connector.assetsCount || 0} files indexed
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="block text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80">
+                        Knowledge Chunks
+                      </span>
+                      <span className="block text-xs font-medium text-foreground/90 font-mono">
+                        {connector.chunksCount || 0} nodes
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="block text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80">
+                        Embedding Pipeline
+                      </span>
+                      <span className="block text-xs font-medium text-foreground/90">
+                        text-embedding-3-small (Qdrant)
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="block text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80">
+                        Sync Frequency
+                      </span>
+                      <span className="block text-xs font-medium text-foreground/90">
+                        Continuous (Webhook listener)
+                      </span>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <span className="block text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80">
-                      Workspace Domain
-                    </span>
-                    <span className="block text-xs font-medium text-foreground/90">
-                      neura.local
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="block text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80">
-                      System Account
-                    </span>
-                    <span className="block text-xs font-medium text-foreground/90">
-                      admin@neura.local
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="block text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80">
-                      Last Synchronized
-                    </span>
-                    <span className="block text-xs font-medium text-foreground/90">
-                      {connector.lastSync || "Just now"}
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="block text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80">
-                      Knowledge Assets
-                    </span>
-                    <span className="block text-xs font-medium text-foreground/90 font-mono">
-                      {connector.assetsCount || 0} files indexed
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="block text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80">
-                      Knowledge Chunks
-                    </span>
-                    <span className="block text-xs font-medium text-foreground/90 font-mono">
-                      {connector.chunksCount || 0} nodes
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="block text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80">
-                      Embedding Pipeline
-                    </span>
-                    <span className="block text-xs font-medium text-foreground/90">
-                      text-embedding-3-small (Qdrant)
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="block text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80">
-                      Sync Frequency
-                    </span>
-                    <span className="block text-xs font-medium text-foreground/90">
-                      Continuous (Webhook listener)
-                    </span>
-                  </div>
-                </div>
 
-                {/* PDF Specific Info Section */}
-                {connector.id === "pdf" && (
+                  {/* PDF Specific Info Section */}
                   <div className="space-y-4">
                     <div className="flex items-center gap-1.5 px-0.5 select-none">
                       <FileText className="size-4 text-primary" />
@@ -456,7 +489,7 @@ export function ConnectorDetailSheet({
                             return (
                               <div
                                 key={f.id}
-                                className="rounded-lg border border-border/15 bg-secondary/10 p-3 flex flex-col gap-2"
+                                className="flex flex-col gap-2.5 rounded-xl border border-border/25 bg-card p-4 shadow-sm/5 leading-normal"
                               >
                                 <div className="flex items-start justify-between gap-3 text-xs leading-tight">
                                   <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -519,9 +552,9 @@ export function ConnectorDetailSheet({
                                   </span>
                                 </div>
 
-                                {/* Error detailed description */}
+                                {/* Detailed status feedback */}
                                 {f.error && (
-                                  <div className="flex items-start gap-1 text-[10px] text-red-500 leading-normal bg-red-500/5 px-2 py-1 rounded border border-red-500/10">
+                                  <div className="flex items-start gap-1.5 text-[10px] text-red-500 leading-normal">
                                     <AlertCircle className="size-3.5 shrink-0 mt-0.5" />
                                     <span>{f.error}</span>
                                   </div>
@@ -613,27 +646,138 @@ export function ConnectorDetailSheet({
                       </div>
                     )}
                   </div>
-                )}
 
-                {/* Connected Channel Actions */}
+                  {/* Connected Channel Actions */}
+                  <div className="pt-4 border-t border-border/20 flex flex-wrap gap-2.5 select-none">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-9 text-xs gap-1.5 px-4 rounded-lg bg-background hover:bg-secondary cursor-pointer"
+                      onClick={() => window.location.reload()}
+                    >
+                      <RefreshCw className="size-3.5" />
+                      Resync Connector
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled
+                      className="h-9 text-xs gap-1.5 px-4 rounded-lg border-red-500/10 text-red-500/60 bg-red-500/5 select-none cursor-not-allowed"
+                    >
+                      <Power className="size-3.5" />
+                      Disconnect Channel
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Google Drive connected Manage Sheet */}
+                  <div className="grid gap-4 grid-cols-2 rounded-xl border border-border/25 bg-secondary/15 p-4 select-none">
+                    <div className="space-y-1">
+                      <span className="block text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80">
+                        Connection Status
+                      </span>
+                      <span className="block text-xs font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
+                        CONNECTED
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="block text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80">
+                        Account Email
+                      </span>
+                      <span className="block text-xs font-medium text-foreground/90 truncate" title={connector.providerEmail}>
+                        {connector.providerEmail || "Unknown"}
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="block text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80">
+                        Workspace
+                      </span>
+                      <span className="block text-xs font-medium text-foreground/90">
+                        default
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="block text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80">
+                        Token Status
+                      </span>
+                      <span className="block text-xs font-medium text-emerald-600 dark:text-emerald-400 font-mono">
+                        Active & Valid
+                      </span>
+                    </div>
+                    <div className="space-y-1 col-span-2">
+                      <span className="block text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80">
+                        Last Connected
+                      </span>
+                      <span className="block text-xs font-medium text-foreground/90">
+                        {connector.lastSync || "Unknown"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Disconnect Action Block */}
+                  <div className="pt-4 border-t border-border/20 flex flex-wrap gap-2.5 select-none">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-9 text-xs gap-1.5 px-4 rounded-lg border-red-500/20 text-red-500 hover:bg-red-500/5 cursor-pointer"
+                      onClick={() => disconnectMutation.mutate()}
+                      disabled={disconnectMutation.isPending}
+                    >
+                      {disconnectMutation.isPending ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Power className="size-3.5" />
+                      )}
+                      Disconnect Google Drive
+                    </Button>
+                  </div>
+                </>
+              )
+            ) : isDisconnected ? (
+              <>
+                {/* Google Drive Setup panel */}
+                <div className="rounded-xl border border-border/25 bg-card p-5 shadow-sm/5 space-y-4">
+                  <div className="flex items-center gap-1.5 px-0.5 select-none">
+                    <Sparkles className="size-4 text-primary" />
+                    <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">
+                      Authorization Required
+                    </h4>
+                  </div>
+                  <p className="text-xs text-muted-foreground/85 leading-relaxed">
+                    Connect your Google Workspace or personal Google Drive to index documents into NEURA.
+                    OAuth authentication is executed securely; your access tokens are stored encrypted and your Client Secrets are never exposed.
+                  </p>
+
+                  <div className="space-y-2.5 pt-3 border-t border-border/10">
+                    <span className="block text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80">
+                      Requested Access Permissions
+                    </span>
+                    <ul className="text-xs text-muted-foreground/90 space-y-1.5 list-disc pl-4 leading-normal">
+                      <li>
+                        <strong>Google Drive Readonly Scope:</strong> To index and parse contents of documents, slides, and sheets.
+                      </li>
+                      <li>
+                        <strong>Google Drive Metadata Readonly Scope:</strong> To query document titles, owners, last updated timestamps, and folder hierarchy.
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Connect Action Button */}
                 <div className="pt-4 border-t border-border/20 flex flex-wrap gap-2.5 select-none">
                   <Button
                     type="button"
-                    variant="outline"
-                    className="h-9 text-xs gap-1.5 px-4 rounded-lg bg-background hover:bg-secondary cursor-pointer"
-                    onClick={() => window.location.reload()}
+                    className="h-9 text-xs gap-1.5 px-4 rounded-lg bg-primary hover:bg-primary/95 text-primary-foreground cursor-pointer"
+                    onClick={handleConnect}
+                    disabled={isConnecting}
                   >
-                    <RefreshCw className="size-3.5" />
-                    Resync Connector
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled
-                    className="h-9 text-xs gap-1.5 px-4 rounded-lg border-red-500/10 text-red-500/60 bg-red-500/5 select-none cursor-not-allowed"
-                  >
-                    <Power className="size-3.5" />
-                    Disconnect Channel
+                    {isConnecting ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Link2 className="size-3.5" />
+                    )}
+                    Connect Google Drive
                   </Button>
                 </div>
               </>

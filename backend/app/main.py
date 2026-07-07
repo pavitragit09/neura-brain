@@ -10,6 +10,7 @@ from app.models.audit_log import AuditLog
 from app.models.user import User
 from app.models.sop import SOP
 from app.models.document import Document
+from app.models.connector import Connector
 from app.api.sop import (
     router as sop_router
 )
@@ -33,6 +34,9 @@ from app.api.audit import (
 )
 from app.api.trust import (
     router as trust_router
+)
+from app.api.connectors import (
+    router as connectors_router
 )
 from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
@@ -97,4 +101,7 @@ app.include_router(
 )
 app.include_router(
     trust_router
+)
+app.include_router(
+    connectors_router
 )

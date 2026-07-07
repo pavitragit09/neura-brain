@@ -3,7 +3,7 @@
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type ConnectorStatusType = "connected" | "syncing" | "needs_attention" | "coming_soon";
+export type ConnectorStatusType = "connected" | "syncing" | "needs_attention" | "coming_soon" | "disconnected";
 
 type ConnectorStatusProps = {
   status: ConnectorStatusType;
@@ -17,6 +17,11 @@ export function ConnectorStatus({ status, className }: ConnectorStatusProps) {
         return {
           label: "Connected",
           classes: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/10",
+        };
+      case "disconnected":
+        return {
+          label: "Not Connected",
+          classes: "bg-secondary/60 border-border/15 text-muted-foreground/80",
         };
       case "syncing":
         return {

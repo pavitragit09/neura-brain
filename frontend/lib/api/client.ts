@@ -149,4 +149,27 @@ export async function submitSearchQuery(payload: SearchQueryRequest): Promise<Se
   });
 }
 
+export interface GoogleConnectorStatus {
+  status: "connected" | "disconnected";
+  email?: string;
+  last_connected?: string;
+  connection_health?: string;
+}
+
+export async function getGoogleStatus(): Promise<GoogleConnectorStatus> {
+  return apiFetch<GoogleConnectorStatus>("/connectors/google/status");
+}
+
+export async function connectGoogle(): Promise<{ url: string }> {
+  return apiFetch<{ url: string }>("/connectors/google/connect", {
+    method: "POST",
+  });
+}
+
+export async function disconnectGoogle(): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>("/connectors/google/disconnect", {
+    method: "POST",
+  });
+}
+
 

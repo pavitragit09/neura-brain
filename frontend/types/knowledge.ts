@@ -21,7 +21,7 @@ export interface SOPItem {
 }
 
 export type ConnectorCategory = "documents" | "collaboration" | "knowledge" | "engineering";
-export type ConnectorStatusType = "connected" | "syncing" | "needs_attention" | "coming_soon";
+export type ConnectorStatusType = "connected" | "syncing" | "needs_attention" | "coming_soon" | "disconnected";
 
 export interface ConnectorItem {
   id: string;
@@ -33,6 +33,7 @@ export interface ConnectorItem {
   lastSync?: string;
   assetsCount?: number;
   chunksCount?: number;
+  providerEmail?: string;
 }
 
 export interface TrustSummary {

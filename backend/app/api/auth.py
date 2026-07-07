@@ -80,3 +80,38 @@ def get_me(
 ):
 
     return current_user
+
+
+from fastapi.responses import RedirectResponse
+from app.services import connector_service
+from urllib.parse import quote
+
+@router.get("/google/callback")
+def google_callback(
+    code: str | None = None,
+    state: str | None = None,
+    error: str | None = None,
+    db: Session = Depends(get_db)
+):
+    if error:
+        return RedirectResponse(
+            url=f"http://localhost:3000/knowledge-sources?error={quote(error)}"
+        )
+    if not state:
+        return RedirectResponse(
+            url="http://localhost:3000/knowledge-sources?error=Missing+OAuth+state+parameter"
+        )
+    if not code:
+        return RedirectResponse(
+            url="http://localhost:3000/knowledge-sources?error=No+authorization+code+provided"
+        )
+    try:
+        user_id = connector_service.verify_state_token(state)
+        connector_service.handle_google_callback(db, code, user_id)
+        return RedirectResponse(
+            url="http://localhost:3000/knowledge-sources?success=true"
+        )
+    except Exception as e:
+        return RedirectResponse(
+            url=f"http://localhost:3000/knowledge-sources?error={quote(str(e))}"
+        )
