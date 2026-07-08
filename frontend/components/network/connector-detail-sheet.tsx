@@ -5,8 +5,8 @@ import type { ConnectorItem } from "@/types/knowledge";
 import { ConnectorStatus } from "./connector-status";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
-import { useQueryClient, useMutation } from "@tanstack/react-query";
-import { uploadDocument, connectGoogle, disconnectGoogle, syncGoogleDrive, type GoogleSyncResponse } from "@/lib/api/client";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
+import { uploadDocument, connectGoogle, disconnectGoogle, syncGoogleDrive, type GoogleSyncResponse, getGoogleQueueStats } from "@/lib/api/client";
 import { toast } from "sonner";
 import {
   FileText,
@@ -46,6 +46,18 @@ export function ConnectorDetailSheet({
   onClose,
 }: ConnectorDetailSheetProps) {
   const queryClient = useQueryClient();
+  const { data: queueStats } = useQuery({
+    queryKey: ["connector-queue", "google"],
+    queryFn: getGoogleQueueStats,
+    enabled: isOpen && connector?.status === "connected" && connector?.id === "google",
+    refetchInterval: (query) => {
+      const state = query.state.data;
+      if (state && (state.pending > 0 || state.processing > 0)) {
+        return 3000;
+      }
+      return 10000;
+    },
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isConnecting, setIsConnecting] = useState(false);
@@ -114,14 +126,14 @@ export function ConnectorDetailSheet({
 
   // Simulating stages progression while mutation is active
   useEffect(() => {
-    if (!isSyncing || syncStage >= 6) return;
+    if (!isSyncing || syncStage >= 4) return;
     const interval = setInterval(() => {
       setSyncStage((prev) => {
-        if (prev < 6) return prev + 1;
+        if (prev < 4) return prev + 1;
         clearInterval(interval);
         return prev;
       });
-    }, 2500);
+    }, 2000);
     return () => clearInterval(interval);
   }, [isSyncing, syncStage]);
 
@@ -777,6 +789,33 @@ export function ConnectorDetailSheet({
                     </div>
                   </div>
 
+                  {/* Ingestion Queue Metrics */}
+                  {queueStats && (
+                    <div className="rounded-xl border border-border/25 bg-secondary/5 p-4 space-y-2 select-none">
+                      <span className="block text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/80">
+                        Knowledge Enrichment Queue
+                      </span>
+                      <div className="grid grid-cols-4 gap-2 pt-1 text-center font-mono">
+                        <div className="rounded-lg bg-card border border-border/10 p-2 leading-none">
+                          <span className="block text-xs font-semibold text-foreground/90">{queueStats.pending}</span>
+                          <span className="block text-[8px] text-muted-foreground/80 mt-1 uppercase font-sans">Pending</span>
+                        </div>
+                        <div className="rounded-lg bg-card border border-border/10 p-2 leading-none">
+                          <span className="block text-xs font-semibold text-violet-600 dark:text-violet-400 animate-pulse">{queueStats.processing}</span>
+                          <span className="block text-[8px] text-muted-foreground/80 mt-1 uppercase font-sans">Active</span>
+                        </div>
+                        <div className="rounded-lg bg-card border border-border/10 p-2 leading-none">
+                          <span className="block text-xs font-semibold text-emerald-600 dark:text-emerald-400">{queueStats.completed}</span>
+                          <span className="block text-[8px] text-muted-foreground/80 mt-1 uppercase font-sans">Done</span>
+                        </div>
+                        <div className="rounded-lg bg-card border border-border/10 p-2 leading-none">
+                          <span className="block text-xs font-semibold text-red-500">{queueStats.failed}</span>
+                          <span className="block text-[8px] text-muted-foreground/80 mt-1 uppercase font-sans">Failed</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Sync Ingestion progress feedback */}
                   {(isSyncing || syncStage === 7 || syncStage === 0) && (
                     <div className="rounded-xl border border-border/25 bg-card p-4 shadow-sm/5 space-y-3">
@@ -839,35 +878,7 @@ export function ConnectorDetailSheet({
                               <div className="size-3.5 rounded-full border border-muted-foreground/30" />
                             )}
                             <span className={syncStage === 4 ? "text-primary font-semibold animate-pulse" : ""}>
-                              Generating Vector Embeddings...
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {syncStage >= 5 ? (
-                              syncStage === 5 ? (
-                                <Loader2 className="size-3.5 text-primary animate-spin" />
-                              ) : (
-                                <CheckCircle className="size-3.5 text-emerald-500" />
-                              )
-                            ) : (
-                              <div className="size-3.5 rounded-full border border-muted-foreground/30" />
-                            )}
-                            <span className={syncStage === 5 ? "text-primary font-semibold animate-pulse" : ""}>
-                              Extracting SOP Guidelines...
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {syncStage >= 6 ? (
-                              syncStage === 6 ? (
-                                <Loader2 className="size-3.5 text-primary animate-spin" />
-                              ) : (
-                                <CheckCircle className="size-3.5 text-emerald-500" />
-                              )
-                            ) : (
-                              <div className="size-3.5 rounded-full border border-muted-foreground/30" />
-                            )}
-                            <span className={syncStage === 6 ? "text-primary font-semibold animate-pulse" : ""}>
-                              Compiling Organization Knowledge Graph...
+                              Storing Chunks & Vector Indexing...
                             </span>
                           </div>
                         </div>
@@ -878,7 +889,7 @@ export function ConnectorDetailSheet({
                         <div className="rounded-xl border border-emerald-500/10 bg-emerald-500/5 p-3.5 text-xs leading-relaxed space-y-2 select-text font-normal">
                           <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold select-none">
                             <CheckCircle className="size-4 shrink-0" />
-                            <span>Synchronization Complete</span>
+                            <span>✓ Search Ready</span>
                           </div>
                           <div className="grid grid-cols-2 gap-2 text-muted-foreground/90 font-mono text-[10px] pt-1">
                             <div>Total Files: {syncResult.total_files}</div>
@@ -889,7 +900,7 @@ export function ConnectorDetailSheet({
                             <div className="text-red-500">Failed: {syncResult.failed}</div>
                           </div>
                           <p className="text-[10px] text-muted-foreground/75 leading-normal pt-1 border-t border-border/10">
-                            Knowledge assets are compiled and immediately active inside investigation query retrievers.
+                            Knowledge assets are fully indexed and immediately active inside investigation search queries. Knowledge graph enrichment & SOP rule generation are running in the background queue.
                           </p>
                         </div>
                       )}

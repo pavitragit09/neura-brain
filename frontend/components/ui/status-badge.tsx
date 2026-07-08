@@ -16,12 +16,21 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
   if (norm === "verified" || norm === "active") {
     styles = "bg-emerald-500/10 border-emerald-500/10 text-emerald-600 dark:text-emerald-400";
     label = "VERIFIED";
+  } else if (norm === "indexing") {
+    styles = "bg-primary/10 border-primary/10 text-primary animate-pulse";
+    label = "INDEXING...";
+  } else if (norm === "indexed") {
+    styles = "bg-emerald-500/5 border-emerald-500/10 text-emerald-600 dark:text-emerald-400";
+    label = "SEARCH READY";
+  } else if (norm === "generating_sop") {
+    styles = "bg-violet-500/10 border-violet-500/10 text-violet-600 dark:text-violet-400 animate-pulse";
+    label = "ENRICHING...";
   } else if (norm === "pending_review" || norm === "pending" || norm === "review_required") {
     styles = "bg-amber-500/10 border-amber-500/10 text-amber-600 dark:text-amber-400";
     label = "PENDING REVIEW";
   } else if (norm === "contradiction" || norm === "failed" || norm === "conflict") {
     styles = "bg-red-500/10 border-red-500/10 text-red-600 dark:text-red-400";
-    label = "CONTRADICTION";
+    label = norm === "failed" ? "SOP FAILED" : "CONTRADICTION";
   } else if (norm === "completed" || norm === "done") {
     styles = "bg-emerald-500/10 border-emerald-500/10 text-emerald-600 dark:text-emerald-400";
     label = "COMPLETED";

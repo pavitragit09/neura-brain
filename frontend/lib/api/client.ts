@@ -189,4 +189,17 @@ export async function syncGoogleDrive(): Promise<GoogleSyncResponse> {
   });
 }
 
+export interface GoogleQueueStatsResponse {
+  pending: number;
+  processing: number;
+  completed: number;
+  failed: number;
+}
+
+export async function getGoogleQueueStats(): Promise<GoogleQueueStatsResponse> {
+  return apiFetch<GoogleQueueStatsResponse>("/connectors/google/queue", {
+    method: "GET",
+  });
+}
+
 

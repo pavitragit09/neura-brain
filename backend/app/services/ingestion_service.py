@@ -95,53 +95,34 @@ def ingest_document(
     t1 = time.time()
     print(f"[INGEST TIMING] Store Qdrant chunks: {t1 - t0:.3f} s")
 
-    # Generate SOP
-    t0 = time.time()
-    sop_result = generate_sop_data(text)
-    t1 = time.time()
-    print(f"[INGEST TIMING] SOP generation & parsing: {t1 - t0:.3f} s")
-
-    # Create new SOP record
-    t0 = time.time()
-    saved_sop = create_sop(
-        db=db,
-        document_name=filename,
-        structured_sop=sop_result["structured_sop"],
-        hallucination_score=sop_result["hallucination_score"],
-        confidence_score=sop_result["confidence_score"],
-        review_status=sop_result["review_status"]
-    )
-    t1 = time.time()
-    print(f"[INGEST TIMING] SOP DB insertion: {t1 - t0:.3f} s")
-
-    # Link SOP to document (create or update record)
+    # Create or update Document record in DB with processing_status = "indexed"
     old_sop_id = None
     if existing_doc:
         old_sop_id = existing_doc.sop_id
         existing_doc.filename = filename
-        existing_doc.sop_id = saved_sop.id
+        existing_doc.sop_id = None  # Reset SOP until generated in background
         existing_doc.source_type = source_type
         existing_doc.google_modified_time = google_modified_time
         existing_doc.google_web_view_link = google_web_view_link
-        existing_doc.processing_status = "completed"
+        existing_doc.processing_status = "indexed"  # Mark search-ready instantly
         db.commit()
         db.refresh(existing_doc)
         saved_document = existing_doc
-        print(f"[INGEST] Updated existing document ID: {saved_document.id}")
+        print(f"[INGEST] Reset SOP & marked indexed for existing document ID: {saved_document.id}")
     else:
         saved_document = Document(
             filename=filename,
-            sop_id=saved_sop.id,
+            sop_id=None,
             source_type=source_type,
             google_file_id=google_file_id,
             google_modified_time=google_modified_time,
             google_web_view_link=google_web_view_link,
-            processing_status="completed"
+            processing_status="indexed"  # Mark search-ready instantly
         )
         db.add(saved_document)
         db.commit()
         db.refresh(saved_document)
-        print(f"[INGEST] Created new document ID: {saved_document.id}")
+        print(f"[INGEST] Created indexed document ID: {saved_document.id}")
 
     # Remove old SOP if updating to prevent record leaks
     if old_sop_id:
@@ -149,6 +130,33 @@ def ingest_document(
         if old_sop:
             db.delete(old_sop)
             db.commit()
+
+    # Create or Reset IngestionJob record for background SOP generation queue
+    from app.models.ingestion_job import IngestionJob
+    from app.services.ingestion_queue import queue_processor
+    
+    existing_job = db.query(IngestionJob).filter(IngestionJob.document_id == saved_document.id).first()
+    if existing_job:
+        existing_job.status = "pending"
+        existing_job.attempts = 0
+        existing_job.error_message = None
+        existing_job.retry_after = None
+        existing_job.created_at = datetime.utcnow()
+        existing_job.started_at = None
+        existing_job.completed_at = None
+    else:
+        new_job = IngestionJob(
+            document_id=saved_document.id,
+            status="pending",
+            attempts=0
+        )
+        db.add(new_job)
+        
+    db.commit()
+    print(f"[INGEST] Enqueued background SOP generation job for document ID: {saved_document.id}")
+
+    # Trigger queue processing thread execution
+    queue_processor.start_worker()
 
     # Log action to audit service
     t0 = time.time()
@@ -158,7 +166,7 @@ def ingest_document(
         entity_type="DOCUMENT",
         entity_id=saved_document.id,
         performed_by="system",
-        details=f"Synchronized {filename} from Google Drive" if google_file_id else f"Uploaded {filename}"
+        details=f"Synchronized and indexed {filename} from Google Drive" if google_file_id else f"Uploaded and indexed {filename}"
     )
     t1 = time.time()
     print(f"[INGEST TIMING] DB Auditing: {t1 - t0:.3f} s")
@@ -167,9 +175,8 @@ def ingest_document(
     print(f"[INGEST TIMING] Total ingestion time for {filename}: {total_time:.3f} s")
 
     return {
-        "sop_id": saved_sop.id,
         "document_id": saved_document.id,
-        "result": sop_result
+        "status": "indexed"
     }
 
 def ingest_pdf(db: Session, file_path: str, filename: str) -> dict:

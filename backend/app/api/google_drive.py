@@ -33,3 +33,26 @@ def sync_google_drive(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Synchronization failed: {str(e)}"
         )
+
+@router.get("/queue")
+def get_queue_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get background ingestion queue metrics for the trust summary and slide-over panels.
+    """
+    from app.models.ingestion_job import IngestionJob
+    
+    pending = db.query(IngestionJob).filter(IngestionJob.status == "pending").count()
+    pending_retry = db.query(IngestionJob).filter(IngestionJob.status == "pending_retry").count()
+    processing = db.query(IngestionJob).filter(IngestionJob.status == "processing").count()
+    completed = db.query(IngestionJob).filter(IngestionJob.status == "completed").count()
+    failed = db.query(IngestionJob).filter(IngestionJob.status == "failed").count()
+    
+    return {
+        "pending": pending + pending_retry,
+        "processing": processing,
+        "completed": completed,
+        "failed": failed
+    }

@@ -11,6 +11,7 @@ from app.models.user import User
 from app.models.sop import SOP
 from app.models.document import Document
 from app.models.connector import Connector
+from app.models.ingestion_job import IngestionJob
 from app.api.sop import (
     router as sop_router
 )
@@ -50,6 +51,12 @@ Base.metadata.create_all(
 app = FastAPI(
     title="Company Brain MVP"
 )
+
+@app.on_event("startup")
+def startup_event():
+    from app.services.ingestion_queue import queue_processor
+    queue_processor.start_worker()
+
 
 # Ensure upload directory exists and mount static path
 settings.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
