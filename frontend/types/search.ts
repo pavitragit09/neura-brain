@@ -2,6 +2,9 @@ export type SearchSource = {
   document: string;
   chunk_index: number;
   excerpt?: string;
+  source_type?: string | null;
+  google_file_id?: string | null;
+  google_web_view_link?: string | null;
 };
 
 export type RelatedKnowledgeItem = {

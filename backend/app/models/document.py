@@ -48,6 +48,22 @@ class Document(Base):
         default=datetime.utcnow
     )
 
+    google_file_id = Column(
+        String,
+        nullable=True,
+        index=True
+    )
+
+    google_modified_time = Column(
+        DateTime,
+        nullable=True
+    )
+
+    google_web_view_link = Column(
+        String,
+        nullable=True
+    )
+
     sop = relationship(
         "SOP",
         back_populates="document"

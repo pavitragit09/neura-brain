@@ -32,7 +32,9 @@ def get_connector_status(db: Session, connector_type: str):
             "status": "connected",
             "email": conn.provider_email,
             "last_connected": conn.updated_at.isoformat(),
-            "connection_health": "healthy"
+            "connection_health": "healthy",
+            "files_indexed": conn.files_indexed,
+            "last_sync_at": conn.last_sync_at.isoformat() if conn.last_sync_at else None
         }
     return {"status": "disconnected"}
 

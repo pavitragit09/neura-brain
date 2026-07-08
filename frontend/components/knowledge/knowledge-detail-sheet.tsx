@@ -55,7 +55,7 @@ export function KnowledgeDetailSheet({
                 {document.filename}
               </SheetTitle>
               <SheetDescription className="text-xs text-muted-foreground/75 font-normal">
-                Uploaded on {uploadDate} · Source type {document.source_type.toUpperCase()}
+                Uploaded on {uploadDate} · Source: {document.source_type === "google_drive" ? "Google Drive" : document.source_type.toUpperCase()}
               </SheetDescription>
             </div>
 

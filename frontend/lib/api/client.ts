@@ -154,6 +154,17 @@ export interface GoogleConnectorStatus {
   email?: string;
   last_connected?: string;
   connection_health?: string;
+  files_indexed?: number;
+  last_sync_at?: string;
+}
+
+export interface GoogleSyncResponse {
+  total_files: number;
+  indexed: number;
+  updated: number;
+  skipped: number;
+  failed: number;
+  duration_seconds: number;
 }
 
 export async function getGoogleStatus(): Promise<GoogleConnectorStatus> {
@@ -168,6 +179,12 @@ export async function connectGoogle(): Promise<{ url: string }> {
 
 export async function disconnectGoogle(): Promise<{ message: string }> {
   return apiFetch<{ message: string }>("/connectors/google/disconnect", {
+    method: "POST",
+  });
+}
+
+export async function syncGoogleDrive(): Promise<GoogleSyncResponse> {
+  return apiFetch<GoogleSyncResponse>("/connectors/google/sync", {
     method: "POST",
   });
 }

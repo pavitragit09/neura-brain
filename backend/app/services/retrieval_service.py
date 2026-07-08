@@ -30,7 +30,10 @@ def answer_question(
         "sources": [
             {
                 "document": chunk["source"],
-                "chunk_index": chunk["chunk_index"]
+                "chunk_index": chunk["chunk_index"],
+                "source_type": chunk.get("source_type"),
+                "google_file_id": chunk.get("google_file_id"),
+                "google_web_view_link": chunk.get("google_web_view_link")
             }
             for chunk in chunks
         ]

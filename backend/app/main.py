@@ -38,6 +38,9 @@ from app.api.trust import (
 from app.api.connectors import (
     router as connectors_router
 )
+from app.api.google_drive import (
+    router as google_drive_router
+)
 from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 
@@ -104,4 +107,7 @@ app.include_router(
 )
 app.include_router(
     connectors_router
+)
+app.include_router(
+    google_drive_router
 )

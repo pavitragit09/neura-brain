@@ -4,9 +4,9 @@ import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/
 import type { ConnectorItem } from "@/types/knowledge";
 import { ConnectorStatus } from "./connector-status";
 import { Button } from "@/components/ui/button";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
-import { uploadDocument, connectGoogle, disconnectGoogle } from "@/lib/api/client";
+import { uploadDocument, connectGoogle, disconnectGoogle, syncGoogleDrive, type GoogleSyncResponse } from "@/lib/api/client";
 import { toast } from "sonner";
 import {
   FileText,
@@ -78,6 +78,52 @@ export function ConnectorDetailSheet({
       setIsConnecting(false);
     }
   };
+
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncStage, setSyncStage] = useState(1);
+  const [syncResult, setSyncResult] = useState<GoogleSyncResponse | null>(null);
+
+  const syncMutation = useMutation({
+    mutationFn: syncGoogleDrive,
+    onSuccess: (data) => {
+      setSyncResult(data);
+      setSyncStage(7);
+      toast.success("Google Drive synchronized successfully!");
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
+      queryClient.invalidateQueries({ queryKey: ["sops"] });
+      queryClient.invalidateQueries({ queryKey: ["trust-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-reviews"] });
+      queryClient.invalidateQueries({ queryKey: ["audit-logs"] });
+      queryClient.invalidateQueries({ queryKey: ["connector-status", "google"] });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Failed to synchronize Google Drive.");
+      setSyncStage(0);
+    },
+    onSettled: () => {
+      setIsSyncing(false);
+    }
+  });
+
+  const handleSync = () => {
+    setIsSyncing(true);
+    setSyncResult(null);
+    setSyncStage(1);
+    syncMutation.mutate();
+  };
+
+  // Simulating stages progression while mutation is active
+  useEffect(() => {
+    if (!isSyncing || syncStage >= 6) return;
+    const interval = setInterval(() => {
+      setSyncStage((prev) => {
+        if (prev < 6) return prev + 1;
+        clearInterval(interval);
+        return prev;
+      });
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [isSyncing, syncStage]);
 
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const [recentUploads, setRecentUploads] = useState<{ name: string; size: number; date: string }[]>([]);
@@ -693,7 +739,7 @@ export function ConnectorDetailSheet({
                       <span className="block text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80">
                         Workspace
                       </span>
-                      <span className="block text-xs font-medium text-foreground/90">
+                      <span className="block text-xs font-medium text-foreground/90 font-mono">
                         default
                       </span>
                     </div>
@@ -705,24 +751,185 @@ export function ConnectorDetailSheet({
                         Active & Valid
                       </span>
                     </div>
+                    <div className="space-y-1">
+                      <span className="block text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80">
+                        Indexed Files
+                      </span>
+                      <span className="block text-xs font-medium text-foreground/90 font-mono">
+                        {connector.assetsCount ?? 0} files
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="block text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80">
+                        Knowledge Chunks
+                      </span>
+                      <span className="block text-xs font-medium text-foreground/90 font-mono">
+                        {connector.chunksCount ?? 0} nodes
+                      </span>
+                    </div>
                     <div className="space-y-1 col-span-2">
                       <span className="block text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80">
-                        Last Connected
+                        Last Synchronized
                       </span>
                       <span className="block text-xs font-medium text-foreground/90">
-                        {connector.lastSync || "Unknown"}
+                        {connector.lastSync || "Never synchronized"}
                       </span>
                     </div>
                   </div>
 
-                  {/* Disconnect Action Block */}
+                  {/* Sync Ingestion progress feedback */}
+                  {(isSyncing || syncStage === 7 || syncStage === 0) && (
+                    <div className="rounded-xl border border-border/25 bg-card p-4 shadow-sm/5 space-y-3">
+                      <span className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/75 px-0.5 leading-none mb-1 select-none">
+                        Google Drive Synchronization
+                      </span>
+                      
+                      {isSyncing && (
+                        <div className="flex flex-col gap-2 pl-3 border-l border-primary/20 text-[10.5px] text-muted-foreground/80 font-mono select-none">
+                          <div className="flex items-center gap-2">
+                            {syncStage >= 1 ? (
+                              syncStage === 1 ? (
+                                <Loader2 className="size-3.5 text-primary animate-spin" />
+                              ) : (
+                                <CheckCircle className="size-3.5 text-emerald-500" />
+                              )
+                            ) : (
+                              <div className="size-3.5 rounded-full border border-muted-foreground/30" />
+                            )}
+                            <span className={syncStage === 1 ? "text-primary font-semibold animate-pulse" : ""}>
+                              Scanning Drive Files...
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {syncStage >= 2 ? (
+                              syncStage === 2 ? (
+                                <Loader2 className="size-3.5 text-primary animate-spin" />
+                              ) : (
+                                <CheckCircle className="size-3.5 text-emerald-500" />
+                              )
+                            ) : (
+                              <div className="size-3.5 rounded-full border border-muted-foreground/30" />
+                            )}
+                            <span className={syncStage === 2 ? "text-primary font-semibold animate-pulse" : ""}>
+                              Downloading Documents...
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {syncStage >= 3 ? (
+                              syncStage === 3 ? (
+                                <Loader2 className="size-3.5 text-primary animate-spin" />
+                              ) : (
+                                <CheckCircle className="size-3.5 text-emerald-500" />
+                              )
+                            ) : (
+                              <div className="size-3.5 rounded-full border border-muted-foreground/30" />
+                            )}
+                            <span className={syncStage === 3 ? "text-primary font-semibold animate-pulse" : ""}>
+                              Extracting Text Content...
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {syncStage >= 4 ? (
+                              syncStage === 4 ? (
+                                <Loader2 className="size-3.5 text-primary animate-spin" />
+                              ) : (
+                                <CheckCircle className="size-3.5 text-emerald-500" />
+                              )
+                            ) : (
+                              <div className="size-3.5 rounded-full border border-muted-foreground/30" />
+                            )}
+                            <span className={syncStage === 4 ? "text-primary font-semibold animate-pulse" : ""}>
+                              Generating Vector Embeddings...
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {syncStage >= 5 ? (
+                              syncStage === 5 ? (
+                                <Loader2 className="size-3.5 text-primary animate-spin" />
+                              ) : (
+                                <CheckCircle className="size-3.5 text-emerald-500" />
+                              )
+                            ) : (
+                              <div className="size-3.5 rounded-full border border-muted-foreground/30" />
+                            )}
+                            <span className={syncStage === 5 ? "text-primary font-semibold animate-pulse" : ""}>
+                              Extracting SOP Guidelines...
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {syncStage >= 6 ? (
+                              syncStage === 6 ? (
+                                <Loader2 className="size-3.5 text-primary animate-spin" />
+                              ) : (
+                                <CheckCircle className="size-3.5 text-emerald-500" />
+                              )
+                            ) : (
+                              <div className="size-3.5 rounded-full border border-muted-foreground/30" />
+                            )}
+                            <span className={syncStage === 6 ? "text-primary font-semibold animate-pulse" : ""}>
+                              Compiling Organization Knowledge Graph...
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Complete metrics message */}
+                      {syncStage === 7 && syncResult && (
+                        <div className="rounded-xl border border-emerald-500/10 bg-emerald-500/5 p-3.5 text-xs leading-relaxed space-y-2 select-text font-normal">
+                          <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold select-none">
+                            <CheckCircle className="size-4 shrink-0" />
+                            <span>Synchronization Complete</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-muted-foreground/90 font-mono text-[10px] pt-1">
+                            <div>Total Files: {syncResult.total_files}</div>
+                            <div>Duration: {syncResult.duration_seconds}s</div>
+                            <div className="text-emerald-600 dark:text-emerald-400">Indexed (New): {syncResult.indexed}</div>
+                            <div className="text-primary">Updated: {syncResult.updated}</div>
+                            <div>Skipped: {syncResult.skipped}</div>
+                            <div className="text-red-500">Failed: {syncResult.failed}</div>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground/75 leading-normal pt-1 border-t border-border/10">
+                            Knowledge assets are compiled and immediately active inside investigation query retrievers.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Error message */}
+                      {syncStage === 0 && (
+                        <div className="rounded-xl border border-red-500/10 bg-red-500/5 p-3.5 text-xs leading-relaxed space-y-1.5 select-text font-normal">
+                          <div className="flex items-center gap-1.5 text-red-500 font-semibold select-none">
+                            <AlertCircle className="size-4 shrink-0" />
+                            <span>Synchronization Failed</span>
+                          </div>
+                          <p className="text-[10px] text-red-500 font-mono leading-normal">
+                            {syncMutation.error?.message || "Internal server error occurred."}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Actions Block */}
                   <div className="pt-4 border-t border-border/20 flex flex-wrap gap-2.5 select-none">
+                    <Button
+                      type="button"
+                      className="h-9 text-xs gap-1.5 px-4 rounded-lg bg-primary hover:bg-primary/95 text-primary-foreground cursor-pointer"
+                      onClick={handleSync}
+                      disabled={isSyncing || disconnectMutation.isPending}
+                    >
+                      {isSyncing ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <RefreshCw className="size-3.5" />
+                      )}
+                      Sync Google Drive
+                    </Button>
                     <Button
                       type="button"
                       variant="outline"
                       className="h-9 text-xs gap-1.5 px-4 rounded-lg border-red-500/20 text-red-500 hover:bg-red-500/5 cursor-pointer"
                       onClick={() => disconnectMutation.mutate()}
-                      disabled={disconnectMutation.isPending}
+                      disabled={isSyncing || disconnectMutation.isPending}
                     >
                       {disconnectMutation.isPending ? (
                         <Loader2 className="size-3.5 animate-spin" />

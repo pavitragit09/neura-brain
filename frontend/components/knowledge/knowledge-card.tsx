@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, Waypoints, HelpCircle } from "lucide-react";
+import { FileText, Waypoints, HelpCircle, Link2 } from "lucide-react";
 import type { DocumentItem, SOPItem } from "@/types/knowledge";
 import { formatDateTime } from "@/lib/date";
 import { memo } from "react";
@@ -62,6 +62,8 @@ export const KnowledgeCard = memo(function KnowledgeCard({
           <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary/70 border border-border/20 text-muted-foreground/80 group-hover:text-primary group-hover:bg-primary/5 group-hover:border-primary/10 transition-colors duration-150">
             {document.source_type === "pdf" ? (
               <FileText className="size-4" />
+            ) : document.source_type === "google_drive" ? (
+              <Link2 className="size-4 text-primary" />
             ) : (
               <Waypoints className="size-4" />
             )}
@@ -71,7 +73,7 @@ export const KnowledgeCard = memo(function KnowledgeCard({
               {document.filename}
             </h4>
             <p className="truncate text-[11px] text-muted-foreground/85 mt-1">
-              Source: {document.source_type.toUpperCase()} · Updated {formattedDate}
+              Source: {document.source_type === "google_drive" ? "Google Drive" : document.source_type.toUpperCase()} · Updated {formattedDate}
             </p>
           </div>
         </div>
@@ -107,6 +109,8 @@ export const KnowledgeCard = memo(function KnowledgeCard({
         <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary/70 border border-border/20 text-muted-foreground/80 group-hover:text-primary group-hover:bg-primary/5 group-hover:border-primary/10 transition-colors duration-150">
           {document.source_type === "pdf" ? (
             <FileText className="size-4" />
+          ) : document.source_type === "google_drive" ? (
+            <Link2 className="size-4 text-primary" />
           ) : (
             <Waypoints className="size-4" />
           )}
@@ -120,7 +124,7 @@ export const KnowledgeCard = memo(function KnowledgeCard({
           {document.filename}
         </h4>
         <p className="text-[11px] text-muted-foreground/80">
-          Format: {document.source_type.toUpperCase()}
+          Format: {document.source_type === "google_drive" ? "Google Drive" : document.source_type.toUpperCase()}
         </p>
       </div>
 

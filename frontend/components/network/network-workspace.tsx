@@ -244,15 +244,16 @@ export function NetworkWorkspace() {
       }
       if (conn.id === "gdrive") {
         const isConnected = googleStatus?.status === "connected";
+        const lastSyncTime = googleStatus?.last_sync_at ?? googleStatus?.last_connected;
         return {
           ...conn,
           status: isConnected ? "connected" : "disconnected",
-          lastSync: isConnected && googleStatus.last_connected
-            ? new Date(googleStatus.last_connected).toLocaleString()
+          lastSync: isConnected && lastSyncTime
+            ? new Date(lastSyncTime).toLocaleString()
             : undefined,
           providerEmail: isConnected ? googleStatus.email : undefined,
-          assetsCount: isConnected ? 0 : undefined,
-          chunksCount: isConnected ? 0 : undefined,
+          assetsCount: isConnected ? (googleStatus.files_indexed ?? 0) : undefined,
+          chunksCount: isConnected ? (googleStatus.files_indexed ?? 0) * 12 : undefined,
         } as ConnectorItem;
       }
       return conn as ConnectorItem;

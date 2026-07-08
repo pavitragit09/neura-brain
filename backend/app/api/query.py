@@ -46,6 +46,9 @@ def query_knowledge(payload: QueryRequest):
             document=source["document"],
             chunk_index=source["chunk_index"],
             excerpt=source.get("excerpt"),
+            source_type=source.get("source_type"),
+            google_file_id=source.get("google_file_id"),
+            google_web_view_link=source.get("google_web_view_link")
         )
         for source in sources
     ]

@@ -9,6 +9,9 @@ class SearchSourceResponse(BaseModel):
     document: str
     chunk_index: int
     excerpt: str | None = None
+    source_type: str | None = None
+    google_file_id: str | None = None
+    google_web_view_link: str | None = None
 
 
 class RelatedKnowledgeResponse(BaseModel):

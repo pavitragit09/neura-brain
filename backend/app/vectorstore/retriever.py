@@ -70,18 +70,12 @@ def search_similar_chunks(
 
         retrieved_chunks.append(
             {
-                "text": payload.get(
-                    "text",
-                    ""
-                ),
-                "source": payload.get(
-                    "source",
-                    "unknown_document"
-                ),
-                "chunk_index": payload.get(
-                    "chunk_index",
-                    -1
-                )
+                "text": payload.get("text", ""),
+                "source": payload.get("source", "unknown_document"),
+                "chunk_index": payload.get("chunk_index", -1),
+                "source_type": payload.get("source_type"),
+                "google_file_id": payload.get("google_file_id"),
+                "google_web_view_link": payload.get("google_web_view_link")
             }
         )
 

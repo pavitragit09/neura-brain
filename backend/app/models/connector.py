@@ -20,6 +20,7 @@ class Connector(Base):
     last_sync_status = Column(String, nullable=True)
     last_error = Column(String, nullable=True)
     sync_frequency = Column(String, default="manual")
+    files_indexed = Column(Integer, default=0)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
