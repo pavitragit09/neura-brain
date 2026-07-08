@@ -63,9 +63,11 @@ class GoogleDriveConnector(BaseConnector):
             "mimeType = 'application/vnd.google-apps.presentation' or "
             "mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' or "
             "mimeType = 'text/plain' or "
-            "name ends with '.md'"
+            "mimeType = 'text/markdown'"
             ")"
         )
+        
+        print(f"[GOOGLE DRIVE API] q query: {q}")
         
         params = {
             "q": q,
@@ -144,6 +146,27 @@ class GoogleDriveConnector(BaseConnector):
                 name = f.get("name")
                 mime_type = f.get("mimeType")
                 web_view_link = f.get("webViewLink")
+                
+                # Local validation to ignore unsupported file extensions
+                lower_name = name.lower()
+                is_supported = (
+                    lower_name.endswith(".pdf") or
+                    lower_name.endswith(".docx") or
+                    lower_name.endswith(".txt") or
+                    lower_name.endswith(".md") or
+                    mime_type in [
+                        "application/pdf",
+                        "application/vnd.google-apps.document",
+                        "application/vnd.google-apps.spreadsheet",
+                        "application/vnd.google-apps.presentation",
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        "text/plain",
+                        "text/markdown"
+                    ]
+                )
+                if not is_supported:
+                    stats["skipped"] += 1
+                    continue
                 
                 # Parse Google RFC3339 timestamp (e.g. 2026-07-07T07:25:00.000Z)
                 mod_time_str = f.get("modifiedTime")
